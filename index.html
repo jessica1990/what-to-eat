@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>干饭人摇摇乐</title>
+  <!-- 引入 Confetti 撒花特效 -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --bg-dots: #fce8eb;
+      --card-bg: #ffffff;
+      --main-pink: #ff6584;
+      --yellow-btn-start: #ff758f;
+      --yellow-btn-end: #ffb703;
+      --accent-yellow: #fff3bf;
+      --text-color: #4a3e3d;
+      --sub-text: #8e7a79;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: #fff9f9;
+      background-image: radial-gradient(#f7c1cb 2px, transparent 2px);
+      background-size: 20px 20px;
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px 10px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* 顶部胶囊标题 */
+    .header-pill {
+      background: #ffffff;
+      padding: 10px 28px;
+      border-radius: 40px;
+      box-shadow: 0 8px 20px rgba(255, 182, 193, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 2px solid #fff0f3;
+    }
+
+    .header-pill h1 {
+      font-size: 1.6rem;
+      color: #ff5277;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .sub-title {
+      font-size: 0.85rem;
+      color: var(--sub-text);
+      margin-top: -6px;
+      margin-bottom: 4px;
+    }
+
+    /* 主展示卡片 (还原图一) */
+    .main-card {
+      width: 100%;
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 24px 20px;
+      box-shadow: 0 10px 30px rgba(255, 182, 193, 0.25);
+      border: 3px solid #ffe3e8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      min-height: 230px;
+      justify-content: center;
+      isolation: isolate;
+      overflow: hidden;
+    }
+
+    .main-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .main-card::before,
+    .main-card::after {
+      content: '';
+      position: absolute;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0;
+    }
+
+    .main-card::before {
+      width: 720px;
+      height: 720px;
+      left: calc(50% - 360px);
+      top: calc(50% - 360px);
+      background: repeating-conic-gradient(from 0deg, #ffce6766 0deg 12deg, transparent 12deg 30deg);
+      border-radius: 50%;
+    }
+
+    .main-card::after {
+      width: 130px;
+      height: 130px;
+      left: calc(50% - 65px);
+      top: calc(50% - 65px);
+      border: 7px solid #ff83a0;
+      border-radius: 50%;
+    }
+
+    .main-card.is-spinning {
+      border-color: #ff83a0;
+      box-shadow: 0 0 0 5px #ff83a01c, 0 12px 35px #ff52774d;
+    }
+
+    .main-card.is-spinning::before {
+      opacity: 0.65;
+      animation: charge-rays 1.2s linear infinite;
+    }
+
+    .main-card.is-spinning .food-name {
+      text-shadow: 2px 0 #ff7d9a55, -2px 0 #ffc14666;
+    }
+
+    .main-card.is-revealed {
+      border-color: #ffb64a;
+      box-shadow: 0 0 0 5px #ffce6729, 0 12px 38px #ff9f4352;
+    }
+
+    .main-card.is-revealed::before {
+      animation: reveal-rays 700ms ease-out both;
+    }
+
+    .main-card.is-revealed::after {
+      animation: reveal-ring 600ms ease-out both;
+    }
+
+    .main-card.is-revealed .food-option.is-visible .food-icon {
+      animation: result-pop 240ms ease-out both;
+    }
+
+    .main-card.is-revealed .food-option.is-visible .food-name {
+      color: #d94461;
+      animation: result-title 240ms ease-out both;
+    }
+
+    @keyframes charge-rays {
+      to { transform: rotate(90deg); }
+    }
+
+    @keyframes reveal-rays {
+      0% { opacity: 0.85; transform: rotate(0deg) scale(0.7); }
+      100% { opacity: 0; transform: rotate(35deg) scale(1.25); }
+    }
+
+    @keyframes reveal-ring {
+      0% { opacity: 0.9; transform: scale(0.4); }
+      100% { opacity: 0; transform: scale(4.5); }
+    }
+
+    @keyframes result-pop {
+      from { transform: scale(0.85); }
+      to { transform: scale(1); }
+    }
+
+    @keyframes result-title {
+      from { opacity: 0.5; transform: scale(0.94); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .badge-tag {
+      background: #fff8dc;
+      color: #d97706;
+      font-size: 0.8rem;
+      font-weight: bold;
+      padding: 4px 14px;
+      border-radius: 20px;
+      border: 1px dashed #fcd34d;
+      margin-bottom: 12px;
+    }
+
+    .food-display {
+      position: relative;
+      width: 100%;
+      height: 124px;
+    }
+
+    .food-display.is-spinning .food-option {
+      will-change: opacity;
+    }
+
+    .food-option {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 16ms linear;
+      pointer-events: none;
+    }
+
+    .food-option.is-visible {
+      opacity: 1;
+    }
+
+    .food-icon {
+      font-size: 3.5rem;
+      line-height: 1.2;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+
+    .food-name {
+      font-size: clamp(1.2rem, 5.5vw, 1.9rem);
+      line-height: 1.3;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+      font-weight: 900;
+      color: #2b2b2b;
+      margin-bottom: 6px;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
+    .food-quote {
+      font-size: 0.85rem;
+      color: var(--sub-text);
+      width: 100%;
+      min-height: 2.8em;
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    /* 主抽签按钮 */
+    .spin-btn {
+      width: 100%;
+      padding: 16px;
+      border-radius: 50px;
+      border: none;
+      background: linear-gradient(135deg, #ff5277 0%, #ff9f43 100%);
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(255, 82, 119, 0.35);
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .spin-btn:active {
+      transform: scale(0.97);
+      box-shadow: 0 4px 10px rgba(255, 82, 119, 0.2);
+    }
+
+    .spin-btn:disabled {
+      cursor: wait;
+    }
+
+    /* 候选菜单卡片 */
+    .menu-card {
+      width: 100%;
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 18px 18px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+      border: 2px solid #fff0f3;
+    }
+
+    .menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .menu-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #4a3e3d;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-reset {
+      background: none;
+      border: none;
+      color: #a89a99;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .btn-reset:hover {
+      color: var(--main-pink);
+    }
+
+    /* 输入框 */
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1.5px solid #ffd8e1;
+      outline: none;
+      font-size: 0.88rem;
+      background: #fffafa;
+    }
+
+    .input-row input:focus {
+      border-color: #ff5277;
+    }
+
+    .add-btn {
+      background: linear-gradient(135deg, #ff758f 0%, #ff5277 100%);
+      color: white;
+      border: none;
+      padding: 0 16px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    /* 标签云列表 */
+    .tags-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-height: 160px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .food-tag {
+      background: #fff5f6;
+      border: 1px solid #ffe3e8;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #555;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+    }
+
+    .food-tag.active {
+      background: #ff5277;
+      color: white;
+      border-color: #ff5277;
+      transform: scale(1.05);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .main-card,
+      .main-card::before,
+      .main-card::after,
+      .main-card .food-icon,
+      .main-card .food-name {
+        animation: none !important;
+      }
+
+      .main-card::before,
+      .main-card::after {
+        display: none;
+      }
+
+      .food-option,
+      .food-tag {
+        transition: none;
+      }
+    }
+
+    .del-btn {
+      cursor: pointer;
+      color: #ccc;
+      font-size: 0.8rem;
+      line-height: 1;
+    }
+
+    .food-tag.active .del-btn {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .del-btn:hover {
+      color: #ff2a55;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- 顶部标题 -->
+    <div class="header-pill">
+      <span>🍱</span>
+      <h1>干饭人摇摇乐</h1>
+      <span>🧋</span>
+    </div>
+    <!-- <div class="sub-title">解决选择困难症！点击按钮让宇宙为你选择 ✨</div> -->
+
+    <!-- 主卡片 -->
+    <div class="main-card" id="mainCard">
+      <div class="badge-tag" id="badgeTag">✨ 美食准备中...</div>
+      <div class="food-display" id="foodDisplay">
+        <div class="food-option is-visible" id="foodOption">
+          <div class="food-icon" id="foodIcon">🎲</div>
+          <div class="food-name" id="foodName">今天吃什么？</div>
+        </div>
+        <div class="food-option" id="foodOptionNext" aria-hidden="true">
+          <div class="food-icon" id="foodIconNext"></div>
+          <div class="food-name" id="foodNameNext"></div>
+        </div>
+      </div>
+      <div class="food-quote" id="foodQuote">点击下方按钮开启干饭盲盒吧~ ✨</div>
+    </div>
+
+    <!-- 摇奖按钮 -->
+    <button class="spin-btn" id="spinBtn" onclick="startSpin()">
+      🎲 开启干饭盲盒！
+    </button>
+
+    <!-- 候选菜单管理 -->
+    <div class="menu-card">
+      <div class="menu-header">
+        <div class="menu-title">
+          <span>📋</span> 候选菜单 (<span id="countText">0</span>)
+        </div>
+        <button class="btn-reset" onclick="resetDefault()">🔄 重置预设</button>
+      </div>
+
+      <div class="input-row">
+        <input type="text" id="foodInput" placeholder="输入想吃的菜名，例如：螺蛳粉" maxlength="12">
+        <button class="add-btn" onclick="addFood()">+ 添加</button>
+      </div>
+
+      <div class="tags-wrapper" id="tagsWrapper"></div>
+    </div>
+  </div>
+
+  <script>
+    // 菜单库与Emoji/评语映射
+    const additionalPresets = [
+      { name: "炒菜米饭", icon: "🍚", quote: "一荤一素配米饭，家常味最下饭！🥢" },
+      { name: "兰州拉面", icon: "🍜", quote: "一口热汤一口面，暖胃又满足！" },
+      { name: "盖浇饭", icon: "🍛", quote: "热菜往米饭上一浇，香得刚刚好！" },
+      { name: "蛋炒饭", icon: "🍳", quote: "粒粒分明蛋香浓，简单也能很幸福！" },
+      { name: "咖喱饭", icon: "🍛", quote: "浓浓咖喱拌米饭，每一口都很香～" },
+      { name: "卤肉饭", icon: "🍚", quote: "软糯卤肉配酱汁，拌饭一绝！" },
+      { name: "烧腊饭", icon: "🍗", quote: "叉烧烧鸭随心配，今天吃得有滋味！" },
+      { name: "猪脚饭", icon: "🍖", quote: "软糯猪脚满满胶香，配口米饭真过瘾！" },
+      { name: "海南鸡饭", icon: "🍗", quote: "嫩鸡配油香米饭，清爽又满足！" },
+      { name: "水饺", icon: "🥟", quote: "热腾腾的饺子蘸点醋，一口一个香！" },
+      { name: "馄饨", icon: "🥣", quote: "皮薄馅鲜汤热乎，一碗就很舒坦～" },
+      { name: "包子豆浆", icon: "🥟", quote: "热包子配豆浆，踏踏实实吃饱啦！" },
+      { name: "牛肉面", icon: "🍜", quote: "牛肉大块、面条劲道，吃完元气满满！" },
+      { name: "炸酱面", icon: "🥢", quote: "酱香裹满每根面，拌一拌就开吃！" },
+      { name: "刀削面", icon: "🍜", quote: "面片厚薄有嚼劲，越吃越带劲！" },
+      { name: "炒面", icon: "🥢", quote: "蔬菜鸡蛋一起炒，锅气满满好滋味！" },
+      { name: "热干面", icon: "🍜", quote: "芝麻酱趁热拌匀，浓香一口就上头！" },
+      { name: "过桥米线", icon: "🥣", quote: "热汤鲜香配米线，丰富配菜一锅端！" },
+      { name: "桂林米粉", icon: "🍜", quote: "卤香米粉配酸豆角，嗦一口就满足！" },
+      { name: "凉皮凉面", icon: "🥒", quote: "酸香清爽有嚼劲，换个口味也不错！" },
+      { name: "麻辣香锅", icon: "🌶️", quote: "荤素搭配一锅香，配碗米饭更过瘾！" },
+      { name: "沙县小吃", icon: "🥟", quote: "拌面扁肉再加个蛋，熟悉的实惠好味道！" },
+      { name: "肉夹馍", icon: "🥙", quote: "酥香馍夹满卤肉，每一口都扎实！" },
+      { name: "粥配小菜", icon: "🥣", quote: "一碗暖粥几碟小菜，给胃放个轻松假～" }
+    ];
+
+    const presets = [
+      { name: "麻辣烫", icon: "🍲", quote: "光是想想都要流口水啦~ 😋" },
+      { name: "肯德基/麦当劳", icon: "🍔", quote: "快乐汉堡，治愈一切不开心！🍟" },
+      { name: "重庆小面", icon: "🍜", quote: "麻辣鲜香，爽滑过瘾！🔥" },
+      { name: "轻食沙拉", icon: "🥗", quote: "今天也是健康自律的一天~ 🥑" },
+      { name: "酸菜鱼", icon: "🐟", quote: "酸辣开胃，鱼肉鲜嫩滑口！" },
+      { name: "黄焖鸡米饭", icon: "🥘", quote: "浓郁汤汁，下饭神器！🍚" },
+      { name: "螺蛳粉", icon: "🍜", quote: "闻着香，吃着爽！🦪" },
+      { name: "日式拉面", icon: "🍥", quote: "浓郁骨汤，温暖你的胃！" },
+      { name: "韩式石锅拌饭", icon: "🍲", quote: "咔哧咔哧的锅巴最香啦！" },
+      { name: "便利店关东煮", icon: "🍢", quote: "简单又温馨的美味~" },
+      { name: "烤肉饭", icon: "🥩", quote: "大口吃肉，幸福感爆棚！" },
+      { name: "煲仔饭", icon: "🍚", quote: "焦香饭焦，每一口都是精华！" },
+      ...additionalPresets
+    ];
+
+    const defaultQuotes = [
+      "今天就决定是它啦！😋",
+      "听宇宙的，准没错！✨",
+      "好好吃饭，好好爱自己~ 🍚",
+      "光是想想都要流口水啦！😍",
+      "美味即刻到家！🚀"
+    ];
+
+    const defaultIcons = ["🍱", "🍲", "🍜", "🍛", "🍔", "🍕", "🥩", "🧋"];
+
+    const presetVersion = '2';
+    const savedFoods = JSON.parse(localStorage.getItem('my_foods'));
+    let foodList = savedFoods || [...presets];
+    // 旧菜单只补一次新增项，保留自定义菜品和对原有预设的删除。
+    if (savedFoods && savedFoods.length > 0 && localStorage.getItem('my_foods_presets_version') !== presetVersion) {
+      const savedNames = new Set(foodList.map(item => item.name));
+      foodList.push(...additionalPresets.filter(item => !savedNames.has(item.name)));
+    }
+    let isSpinning = false;
+
+    // 元素获取
+    const mainCardEl = document.getElementById('mainCard');
+    const badgeTagEl = document.getElementById('badgeTag');
+    const spinBtnEl = document.getElementById('spinBtn');
+    const foodDisplayEl = document.getElementById('foodDisplay');
+    const foodViews = [
+      {
+        element: document.getElementById('foodOption'),
+        name: document.getElementById('foodName'),
+        icon: document.getElementById('foodIcon')
+      },
+      {
+        element: document.getElementById('foodOptionNext'),
+        name: document.getElementById('foodNameNext'),
+        icon: document.getElementById('foodIconNext')
+      }
+    ];
+    let visibleFoodView = 0;
+    const foodQuoteEl = document.getElementById('foodQuote');
+    const tagsWrapper = document.getElementById('tagsWrapper');
+    const countText = document.getElementById('countText');
+    const foodInput = document.getElementById('foodInput');
+
+    function renderTags() {
+      tagsWrapper.innerHTML = '';
+      countText.innerText = foodList.length;
+
+      foodList.forEach((item, index) => {
+        const tag = document.createElement('div');
+        tag.className = 'food-tag';
+        tag.id = `tag-${index}`;
+        tag.innerHTML = `
+          <span>${item.name}</span>
+          <span class="del-btn" onclick="deleteFood(event, ${index})">✕</span>
+        `;
+        tagsWrapper.appendChild(tag);
+      });
+
+      localStorage.setItem('my_foods', JSON.stringify(foodList));
+      localStorage.setItem('my_foods_presets_version', presetVersion);
+    }
+
+    function addFood() {
+      const val = foodInput.value.trim();
+      if (!val) return;
+      if (foodList.some(item => item.name === val)) {
+        alert('这道菜已经在备选清单里了！');
+        return;
+      }
+      const newFood = {
+        name: val,
+        icon: defaultIcons[Math.floor(Math.random() * defaultIcons.length)],
+        quote: defaultQuotes[Math.floor(Math.random() * defaultQuotes.length)]
+      };
+      foodList.push(newFood);
+      foodInput.value = '';
+      renderTags();
+    }
+
+    function deleteFood(e, index) {
+      e.stopPropagation();
+      if (isSpinning) return;
+      foodList.splice(index, 1);
+      renderTags();
+    }
+
+    function resetDefault() {
+      if (isSpinning) return;
+      foodList = [...presets];
+      renderTags();
+    }
+
+    function startSpin() {
+      if (isSpinning) return;
+      if (foodList.length === 0) {
+        alert('请先添加几道菜品吧！');
+        return;
+      }
+
+      isSpinning = true;
+      mainCardEl.classList.remove('is-revealed');
+      mainCardEl.classList.add('is-spinning');
+      spinBtnEl.disabled = true;
+      spinBtnEl.textContent = '🎲 美食摇选中...';
+      badgeTagEl.textContent = '✨ 美食准备中...';
+      foodQuoteEl.textContent = '美味正在赶来，马上揭晓～ ✨';
+
+      const spinFoods = [...foodList];
+      const resultIndex = Math.floor(Math.random() * spinFoods.length);
+      let previousIndex = spinFoods.findIndex(item => item.name === foodViews[visibleFoodView].name.textContent);
+      foodDisplayEl.classList.add('is-spinning');
+      let activeTag = document.querySelector('.food-tag.active');
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const duration = 1900;
+      let startedAt;
+      let nextChangeAt = 0;
+
+      function showFood(index) {
+        const food = spinFoods[index];
+        const currentView = foodViews[visibleFoodView];
+        // 两层内容在原位置交替淡入淡出，避免直接换字时的硬切。
+        if (currentView.name.textContent !== food.name || currentView.icon.textContent !== (food.icon || '🍱')) {
+          const nextViewIndex = 1 - visibleFoodView;
+          const nextView = foodViews[nextViewIndex];
+          nextView.name.textContent = food.name;
+          nextView.icon.textContent = food.icon || '🍱';
+          currentView.element.classList.remove('is-visible');
+          currentView.element.setAttribute('aria-hidden', 'true');
+          nextView.element.classList.add('is-visible');
+          nextView.element.setAttribute('aria-hidden', 'false');
+          visibleFoodView = nextViewIndex;
+        }
+        previousIndex = index;
+
+        const nextTag = document.getElementById(`tag-${index}`);
+        if (activeTag === nextTag) return;
+        if (activeTag) activeTag.classList.remove('active');
+        activeTag = nextTag;
+        if (activeTag) activeTag.classList.add('active');
+      }
+
+      function finishSpin() {
+        const result = spinFoods[resultIndex];
+        showFood(resultIndex);
+        foodQuoteEl.textContent = result.quote || '今天就决定是它啦！';
+        mainCardEl.classList.remove('is-spinning');
+        mainCardEl.classList.add('is-revealed');
+        foodDisplayEl.classList.remove('is-spinning');
+        badgeTagEl.textContent = '🎉 就决定是它啦！';
+        spinBtnEl.textContent = '🎲 不满意？再抽一次！';
+        spinBtnEl.disabled = false;
+        isSpinning = false;
+        if (!reducedMotion && typeof confetti === 'function') {
+          const celebration = {
+            particleCount: 90,
+            spread: 65,
+            startVelocity: 42,
+            ticks: 150,
+            colors: ['#ff5277', '#ff9f43', '#ffd166', '#a78bfa']
+          };
+          confetti({ ...celebration, angle: 60, origin: { x: 0.15, y: 0.65 } });
+          confetti({ ...celebration, angle: 120, origin: { x: 0.85, y: 0.65 } });
+        }
+      }
+
+      function animate(timestamp) {
+        if (startedAt === undefined) startedAt = timestamp;
+        const elapsed = timestamp - startedAt;
+        if (elapsed >= duration) {
+          finishSpin();
+          return;
+        }
+        if (elapsed >= nextChangeAt) {
+          const index = previousIndex >= 0 && spinFoods.length > 1
+            ? (previousIndex + 1 + Math.floor(Math.random() * (spinFoods.length - 1))) % spinFoods.length
+            : Math.floor(Math.random() * spinFoods.length);
+          showFood(index);
+          const progress = elapsed / duration;
+          const slowdown = Math.max(0, (progress - 0.8) / 0.2);
+          nextChangeAt = elapsed + 24 + 80 * slowdown * slowdown;
+        }
+        requestAnimationFrame(animate);
+      }
+
+      if (reducedMotion) {
+        finishSpin();
+      } else {
+        requestAnimationFrame(animate);
+      }
+    }
+
+    foodInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addFood();
+    });
+
+    // 初始化
+    renderTags();
+  </script>
+</body>
+</html>
